@@ -1,0 +1,789 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title></title>
+    <script src="../scripts/jquery-1.7.1.js" type="text/javascript">
+    </script>
+    <script src="../scripts/LocalIndexStorage.js" type="text/javascript"></script>
+    <style>
+        html, body
+        {
+            margin:0px;
+            width:100%;
+            height:100%;
+            padding:0px;
+        }
+
+        div#whitePlayerDiv
+        {
+            
+           background-color:white;
+           border-radius:8px;
+          border:2px solid #DCDAD9;
+        }
+
+         div#blackPlayerDiv
+        {
+            background-color:white;
+            border-radius:8px;
+            border:2px solid #DCDAD9;
+        }
+
+        #headerDiv
+        {
+         background-color:#F2F2F2;
+         font-family:Tahoma,Verdana;   
+         font-size:12px;
+         color:#333333;
+         border-radius:8px;
+         border-bottom:1px solid #DCDAD9;
+        }
+        
+        #Div1{
+         background-color:#F2F2F2;
+         font-family:Tahoma,Verdana;   
+         font-size:12px;
+         color:#333333;
+         border-radius:8px;
+         border-bottom:1px solid #DCDAD9;
+        }
+        
+        #Div2{
+         background-color:#686461;
+         font-family:Tahoma,Verdana;   
+         font-size:12px;
+         color:white;
+         border-radius:8px;
+         border-bottom:1px solid #DCDAD9;
+        }
+        span
+        {
+            line-height:-20px;
+        }
+        #scoreCard
+        {
+           background-color:white;
+           border-radius:8px;
+          border:2px solid #DCDAD9;
+          font-family:Tahoma,Verdana;
+          color:#333333;
+          font-size:12px;
+        }
+    </style>
+</head>
+<body>
+<table cellpadding="0" cellspacing="0" style="table-layout:fixed; height:100%;width:100%;">
+    <tr>
+     <td valign="top" style="width:700px;">
+    <canvas id="canvas" width="700" height ="500" ></canvas>
+     </td>
+        <td style="width:20px;">
+            <div style="width:20px;"></div>
+        </td>
+        <td valign="top" style="width:300px;" >
+            <div id="whitePlayerDiv"  style="height:250px; width:300px;">
+                <div id="headerDiv" style="width:100%; height:40px; text-align:center;"><span>White Elements</span></div>
+            </div>
+            <div id="blackPlayerDiv"  style="height:250px; width:300px;">
+                <div id="Div1" style="width:100%; height:40px; text-align:center;"><span>Black Elements</span></div>
+            </div>
+        </td>
+        <td  style="width:10px;">
+            <div style="width:10px;"></div>
+        </td>
+        <td valign="top" align="center">
+            <div id="scoreCard" style="height:400px;width:200px;">
+                <div id="Div2" style="width:100%; height:40px; text-align:center;"><span>Score Card</span></div>
+                <div id="BlackScore" style="width:100%; height:40px;"><span>Blackcore Is:</span> </div>
+                <div id="WhiteScore" style="width:100%; height:40px;"><span>White Score Is:</span> </div>
+            </div>
+        </td>
+     </tr>
+ </table>
+    <canvas id="maskCanvas"  styl="display:none;" onclick="disableCanvas(this)" width="0" height ="0"></canvas>
+    <canvas id="preMaskCanvas"  styl="display:none;" width="0" height ="0" ></canvas>
+    <img src="../Images/00.png" id="00" style="display:none;" />
+    <img src="../Images/01.png" id="10" style="display:none;" />
+    <img src="../Images/02.png" id="20" style="display:none;" />
+    <img src="../Images/03.png" id="30" style="display:none;" />
+    <img src="../Images/04.png" id="40" style="display:none;" />
+    <img src="../Images/02.png" id="50" style="display:none;" />
+    <img src="../Images/01.png" id="60" style="display:none;" />
+    <img src="../Images/00.png" id="70" style="display:none;" />
+    <img src="../Images/11.png" id="11" style="display:none;" />
+    <img src="../Images/66.png" id="66" style="display:none;" />
+    <img src="../Images/70.png" id="07" style="display:none;" />
+    <img src="../Images/71.png" id="17" style="display:none;" />
+    <img src="../Images/72.png" id="27" style="display:none;" />
+    <img src="../Images/73.png" id="37" style="display:none;" />
+    <img src="../Images/74.png" id="47" style="display:none;" />
+    <img src="../Images/72.png" id="57" style="display:none;" />
+    <img src="../Images/71.png" id="67" style="display:none;" />
+    <img src="../Images/70.png" id="77" style="display:none;" />
+    <script type="text/javascript"> 
+        // Point 1 : To draw chess using canvas  --done
+        // Point 2 : To dray player images -- done
+        // Point 3 : To draw movemnt algorith --under development (Complex level Partial Complete Under Testing Phase);
+        // Point 4 : To integrate two player chess l  using websocket 
+
+        var charcterIndentifier = null;
+        var currentElement = { identifier: null, ismoved: null, color: null };
+        var currentCount = { whitecount: 0, blackcount: 0 };
+        var currentCutObject = { WhitePlayers: [], BlackPlayers: [], id: "one" };
+        
+        
+        function disableCanvas(obj) {
+            if (currentElement.ismoved == "T") {
+                obj.style.display = 'none';
+                currentElement.identifier = null;
+            }
+            else if (currentElement.ismoved == "N") {
+                obj.style.display = 'none';
+                currentElement.identifier = null;
+            }
+        }
+        function relMouseCoords(event) {
+            var totalOffsetX = 0;
+            var totalOffsetY = 0;
+            var canvasX = 0;
+            var canvasY = 0;
+            var currentElement = this;
+
+            do {
+                totalOffsetX += currentElement.offsetLeft;
+                totalOffsetY += currentElement.offsetTop;
+            }
+            while (currentElement = currentElement.offsetParent)
+
+            canvasX = event.pageX - totalOffsetX;
+            canvasY = event.pageY - totalOffsetY;
+
+            return { x: canvasX, y: canvasY }
+        }
+        HTMLCanvasElement.prototype.relMouseCoords = relMouseCoords;
+
+        (function () {
+            var curXHighlightPos = null;
+            var curYHighlightPos = null;
+            var canvas = document.getElementById("canvas");
+            ChessHTMLDB.indexedDB.open("6.0");
+            alert("Pls wait for some time index db is loading the players");
+            if (ChessHTMLDB.indexedDB.returnValue("one") != null) {
+                charcterIndentifier = ChessHTMLDB.indexedDB.returnValue("one");
+
+            }
+            else {
+              alert("No data found in Local Db");
+             charcterIndentifier = {
+                 C1: { X: 0, Y: 0, ImgId: "00", adjacentId: ["c2", "c9", "c10"],color:"B" },
+                 C2: { X: 1, Y: 0, ImgId: "10", adjacentId: ["c1", "c9", "c10", "c11", "c3"], color: "B" },
+                 C3: { X: 2, Y: 0, ImgId: "20", adjacentId: ["c2", "c4", "c10", "c11", "c12"], color: "B" },
+                 C4: { X: 3, Y: 0, ImgId: "30", adjacentId: ["c3", "c5", "c13", "c11", "c12"], color: "B" },
+                 C5: { X: 4, Y: 0, ImgId: "40", adjacentId: ["c4", "c6", "c13", "c14", "c12"], color: "B" },
+                 C6: { X: 5, Y: 0, ImgId: "50", adjacentId: ["c5", "c7", "c13", "c14", "c15"], color: "B" },
+                 C7: { X: 6, Y: 0, ImgId: "60", adjacentId: ["c6", "c8", "c16", "c14", "c15"], color: "B" },
+                 C8: { X: 7, Y: 0, ImgId: "70", adjacentId: ["c7", "c16", "c15"], color: "B" },
+                 C9: { X: 0, Y: 1, ImgId: "11", adjacentId: "BlackSoldier", color: "B" },
+                 C10: { X: 1, Y: 1, ImgId: "11", adjacentId: "BlackSoldier", color: "B" },
+                 C11: { X: 2, Y: 1, ImgId: "11", adjacentId: "BlackSoldier", color: "B" },
+                 C12: { X: 3, Y: 1, ImgId: "11", adjacentId: "BlackSoldier", color: "B" },
+                 C13: { X: 4, Y: 1, ImgId: "11", adjacentId: "BlackSoldier", color: "B" },
+                 C14: { X: 5, Y: 1, ImgId: "11", adjacentId: "BlackSoldier", color: "B" },
+                 C15: { X: 6, Y: 1, ImgId: "11", adjacentId: "BlackSoldier", color: "B" },
+                 C16: { X: 7, Y: 1, ImgId: "11", adjacentId: "BlackSoldier", color: "B" },
+                 C17: { X: 0, Y: 6, ImgId: "66", adjacentId: "WhiteSoldier", color: "W" },
+                 C18: { X: 1, Y: 6, ImgId: "66", adjacentId: "WhiteSoldier", color: "W" },
+                 C19: { X: 2, Y: 6, ImgId: "66", adjacentId: "WhiteSoldier", color: "W" },
+                 C20: { X: 3, Y: 6, ImgId: "66", adjacentId: "WhiteSoldier", color: "W" },
+                 C21: { X: 4, Y: 6, ImgId: "66", adjacentId: "WhiteSoldier", color: "W" },
+                 C22: { X: 5, Y: 6, ImgId: "66", adjacentId: "WhiteSoldier", color: "W" },
+                 C23: { X: 6, Y: 6, ImgId: "66", adjacentId: "WhiteSoldier", color: "W" },
+                 C24: { X: 7, Y: 6, ImgId: "66", adjacentId: "WhiteSoldier", color: "W" },
+                 C25: { X: 0, Y: 7, ImgId: "07", adjacentId: ["c2", "c9", "c10"], color: "W" },
+                 C26: { X: 1, Y: 7, ImgId: "17", adjacentId: ["c2", "c9", "c10"], color: "W" },
+                 C27: { X: 2, Y: 7, ImgId: "27", adjacentId: ["c2", "c9", "c10"], color: "W" },
+                 C28: { X: 3, Y: 7, ImgId: "37", adjacentId: ["c2", "c9", "c10"], color: "W" },
+                 C29: { X: 4, Y: 7, ImgId: "47", adjacentId: ["c2", "c9", "c10"], color: "W" },
+                 C30: { X: 5, Y: 7, ImgId: "57", adjacentId: ["c2", "c9", "c10"], color: "W" },
+                 C31: { X: 6, Y: 7, ImgId: "67", adjacentId: ["c2", "c9", "c10"], color: "W" },
+                 C32: { X: 7, Y: 7, ImgId: "77", adjacentId: ["c2", "c9", "c10"], color: "W" },
+                 id: "one"
+             };
+            }
+
+            if (ChessHTMLDB.indexedDB.returnCutValue("one") != null) {
+                currentCutObject = ChessHTMLDB.indexedDB.returnCutValue("one");
+                jQuery("#WhiteScore").html("White Score Is: " + currentCutObject.BlackPlayers.length);
+                jQuery("#BlackScore").html("Black  Score Is: " + currentCutObject.WhitePlayers.length);
+                
+                      for (var i = 0; i < currentCutObject.BlackPlayers.length; i++) {
+
+                          var duplicateImgElement = jQuery('#' + currentCutObject.BlackPlayers[i].toString()).clone(false);
+                          duplicateImgElement[0].style.display = "inline";
+                          jQuery("#blackPlayerDiv").append(duplicateImgElement);
+                          
+                      }
+                      for (var i = 0; i < currentCutObject.WhitePlayers.length; i++) {
+                          var duplicateImgElement = jQuery('#' + currentCutObject.WhitePlayers[i].toString()).clone(false);
+                          duplicateImgElement[0].style.display = "inline";
+                          jQuery("#whitePlayerDiv").append(duplicateImgElement);
+                          
+                      }
+                }
+            drawCanvas("canvas");
+            var previousClickedIndetifier = null;
+            
+            jQuery(window).unload(function () {
+                currentCutObject.WhitePlayers = [];
+                currentCutObject.BlackPlayers = [];
+                jQuery("#whitePlayerDiv img").each(function (){ currentCutObject.WhitePlayers.push(this.id); });
+                jQuery("#blackPlayerDiv img").each(function (){ currentCutObject.BlackPlayers.push(this.id); });
+                ChessHTMLDB.indexedDB.insertValue(charcterIndentifier);
+                ChessHTMLDB.indexedDB.insertObjectCut(currentCutObject);
+                alert("Pls wait for some time as data is captured in local database");
+            });
+           
+            
+            $("#canvas").click(function (e) {
+                var cords = canvas.relMouseCoords(e);
+                var canvasx = cords.x;
+                var canvasy = cords.y;
+                var xblocksize = 700 / 8;
+                var yblocksize = 500 / 8;
+                var xblock = (Math.floor(canvasx / xblocksize));
+                var yblock = (Math.floor(canvasy / yblocksize));
+                
+                var netmaskXPosition = xblocksize * xblock;
+                var netmastkYposition = yblocksize * yblock;
+
+                //find out which  elementt has been clicked
+                var returnedIdentifier = findCurrentClickedElement(xblock, yblock);
+                var markCanvas = document.getElementById("maskCanvas");
+                var previousMarkCanvas = document.getElementById("preMaskCanvas");
+                if (returnedIdentifier != "X") {
+                    if (currentElement.identifier == null) {
+                        currentElement.identifier = returnedIdentifier;
+                        currentElement.color = charcterIndentifier[returnedIdentifier].color;
+                        currentElement.ismoved = "T";
+                        markCanvas.width = xblocksize;
+                        markCanvas.height = yblocksize;
+                        markCanvas.style.display = 'block';
+                        markCanvas.style.top = netmastkYposition + "px";
+                        markCanvas.style.left = netmaskXPosition + "px";
+                        markCanvas.style.position = 'absolute';
+                        var context = markCanvas.getContext('2d');
+                        context.fillStyle = "#009AD9";
+                        context.globalAlpha = 0.5;
+                        context.fillRect(0, 0, xblocksize, yblocksize);
+                    }
+                    else {
+                        // case A: when Color = color and Is Moved = N
+                        if (charcterIndentifier[returnedIdentifier].color == currentElement.color && currentElement.ismoved == "N") {
+                            markCanvas.style.display = 'none';
+                            currentElement.identifier = null;
+                            currentElement.color = null;
+                            currentElement.ismoved = null;
+                            
+                            
+                    }
+                        
+                        else if (charcterIndentifier[returnedIdentifier].color == currentElement.color && currentElement.ismoved == "Y") {
+                            alert("Other Element Turn");
+                        }
+                        else if (charcterIndentifier[returnedIdentifier].color != currentElement.color && currentElement.ismoved == "T") {
+                            alert("Other Team has yet not moved any player");
+
+                        }
+                        else if (charcterIndentifier[returnedIdentifier].color != currentElement.color && currentElement.ismoved == "N") {
+                            var previousxValue = charcterIndentifier[currentElement.identifier].X
+                            var previousYValue = charcterIndentifier[currentElement.identifier].Y;
+                            if (isValidPath(currentElement.identifier, xblock, yblock,"N") == "Y") {
+                                
+                                if (charcterIndentifier[returnedIdentifier].color == "B") {
+                                    currentCount.whitecount = currentCount.whitecount + 1;
+                                    jQuery("#WhiteScore").html("White Score Is: " + currentCount.whitecount.toString());
+                                    var duplicateImgElement = jQuery('#' + charcterIndentifier[returnedIdentifier].ImgId).clone(false);
+                                    duplicateImgElement[0].style.display = "inline";
+                                    jQuery("#blackPlayerDiv").append(duplicateImgElement);
+                                }
+                                else if (charcterIndentifier[returnedIdentifier].color == "W") {
+                                    currentCount.blackcount = currentCount.blackcount + 1;
+                                    jQuery("#BlackScore").html("Black  Score Is: " + currentCount.blackcount.toString());
+                                    var duplicateImgElement = jQuery('#' + charcterIndentifier[returnedIdentifier].ImgId).clone(false);
+                                    duplicateImgElement[0].style.display="inline";
+                                    jQuery("#whitePlayerDiv").append(duplicateImgElement);
+                                }
+
+                                
+
+                                if (returnedIdentifier == "C5" || returnedIdentifier=="C28") {
+                                    (charcterIndentifier[returnedIdentifier].color == "W") ? alert("Game over black won") : alert("Game over white won")
+                                }
+                                delete charcterIndentifier[returnedIdentifier];
+                                markCanvas.width = xblocksize;
+                                markCanvas.height = yblocksize;
+                                markCanvas.style.display = 'block';
+                                markCanvas.style.top = netmastkYposition + "px";
+                                markCanvas.style.left = netmaskXPosition + "px";
+                                markCanvas.style.position = 'absolute';
+                                var context = markCanvas.getContext('2d');
+                                context.fillStyle = "#009AD9";
+                                context.globalAlpha = 0.5;
+                                context.fillRect(0, 0, xblocksize, yblocksize);
+                                previousMarkCanvas.width = xblocksize;
+                                previousMarkCanvas.height = yblocksize;
+                                previousMarkCanvas.style.display = 'block';
+                                previousMarkCanvas.style.position = 'absolute';
+                                previousMarkCanvas.style.top = previousYValue * yblocksize + "px";
+                                previousMarkCanvas.style.left = previousxValue * xblocksize + "px";
+                                var ctx1 = previousMarkCanvas.getContext('2d');
+                                ctx1.fillStyle = "#009AD9";
+                                ctx1.globalAlpha = 0.5;
+                                ctx1.fillRect(0, 0, xblocksize, yblocksize);
+                                charcterIndentifier[currentElement.identifier].X = xblock;
+                                charcterIndentifier[currentElement.identifier].Y = yblock;
+                                drawCanvas("canvas");
+                                currentElement.color = charcterIndentifier[currentElement.identifier].color
+                                currentElement.identifier = currentElement.identifier;
+                                currentElement.ismoved = "Y";
+                                
+                            }
+                            else {
+                                alert("pls select proper path");
+                            }
+
+                        }
+                        else if (charcterIndentifier[returnedIdentifier].color != currentElement.color && currentElement.ismoved == "Y") {
+                            
+                            currentElement.identifier = returnedIdentifier;
+                            currentElement.color = charcterIndentifier[returnedIdentifier].color;
+                            currentElement.ismoved = "N";
+                            markCanvas.width = xblocksize;
+                            markCanvas.height = yblocksize;
+                            markCanvas.style.display = 'block';
+                            markCanvas.style.top = netmastkYposition + "px";
+                            markCanvas.style.left = netmaskXPosition + "px";
+                            markCanvas.style.position = 'absolute';
+                            var context = markCanvas.getContext('2d');
+                            context.fillStyle = "#009AD9";
+                            context.globalAlpha = 0.5;
+                            context.fillRect(0, 0, xblocksize, yblocksize);
+                        }
+
+                    }
+                }
+
+                else {
+                    if (currentElement.identifier == null) {
+                        return false;
+                    }
+                    else {
+                      
+                        if (isValidPath(currentElement.identifier, xblock, yblock,"Y") == "Y") {
+                                        markCanvas.width = xblocksize;
+                                        markCanvas.height = yblocksize;
+                                        markCanvas.style.display = 'block';
+                                        markCanvas.style.top = netmastkYposition + "px";
+                                        markCanvas.style.left = netmaskXPosition + "px";
+                                        markCanvas.style.position = 'absolute';
+                                        var context = markCanvas.getContext('2d');
+                                        context.fillStyle = "#009AD9";
+                                        context.globalAlpha = 0.5;
+                                        context.fillRect(0, 0, xblocksize, yblocksize);
+                                        var previousxValue = charcterIndentifier[currentElement.identifier].X
+                                        var previousYValue = charcterIndentifier[currentElement.identifier].Y;
+                                        previousMarkCanvas.width = xblocksize;
+                                        previousMarkCanvas.height = yblocksize;
+                                        previousMarkCanvas.style.display = 'block';
+                                        previousMarkCanvas.style.position = 'absolute';
+                                        previousMarkCanvas.style.top = previousYValue * yblocksize + "px";
+                                        previousMarkCanvas.style.left = previousxValue * xblocksize + "px";
+                                        var ctx1 = previousMarkCanvas.getContext('2d');
+                                        ctx1.fillStyle = "#009AD9";
+                                        ctx1.globalAlpha = 0.5;
+                                        ctx1.fillRect(0, 0, xblocksize, yblocksize);
+                                        charcterIndentifier[currentElement.identifier].X = xblock;
+                                        charcterIndentifier[currentElement.identifier].Y = yblock;
+                                        drawCanvas("canvas");
+                                        currentElement.color = charcterIndentifier[currentElement.identifier].color
+                                        currentElement.identifier = currentElement.identifier;
+                                        currentElement.ismoved = "Y";
+                                        isKingInRange(currentElement.identifier);
+                        }
+                        else {
+                            alert("not a valid path");
+                        }
+                     
+                    }
+
+                }
+            });
+        })();
+
+
+        function findCurrentClickedElement(xposition , yposition)
+        {
+            var identifier = "X";
+            for(var key in charcterIndentifier)
+            {
+                if(charcterIndentifier[key].X==xposition&&charcterIndentifier[key].Y==yposition)
+                {
+                    identifier = key.toString();
+                    return identifier;
+                }
+            }
+            return identifier ;
+            
+        }
+        
+       
+        function isKingInRange(identifier) {
+            var xblock, yblock;
+            if (charcterIndentifier[identifier].color == "W") {
+                 xblock = charcterIndentifier["C5"].X;
+                 yblock = charcterIndentifier["C5"].Y;
+            }
+            else {
+                 xblock = charcterIndentifier["C28"].X;
+                 yblock = charcterIndentifier["C28"].Y;
+            }
+
+            if (isValidPath(identifier, xblock, yblock,"Y")=="Y") {
+                alert("Cheque");
+            }
+        }
+
+        function isValidPath(identifier, xcordinate, ycordinate,flag) {
+            
+            var validPathFlag ="N";
+            if (charcterIndentifier[identifier].adjacentId == "BlackSoldier") {
+                if (flag == "N") {
+                    if ((charcterIndentifier[identifier].X+1 == xcordinate||charcterIndentifier[identifier].X-1 == xcordinate) && charcterIndentifier[identifier].Y + 1 == ycordinate) {
+                        validPathFlag = "Y";
+                    }
+                }
+                else {
+                    if (charcterIndentifier[identifier].X == xcordinate && charcterIndentifier[identifier].Y + 1 == ycordinate) {
+                        validPathFlag = "Y";
+                    }
+                }
+            }
+            if (charcterIndentifier[identifier].adjacentId == "WhiteSoldier") {
+                if (flag == "N") {
+                    if ((charcterIndentifier[identifier].X + 1 == xcordinate || charcterIndentifier[identifier].X - 1 == xcordinate) && charcterIndentifier[identifier].Y - 1 == ycordinate) {
+                        validPathFlag = "Y";
+                    }
+                }
+                else {
+                    if (charcterIndentifier[identifier].X == xcordinate && charcterIndentifier[identifier].Y - 1 == ycordinate) {
+                        validPathFlag = "Y";
+                    }
+                }
+            }
+
+            if (identifier == "C1" || identifier == "C8" || identifier == "C25" || identifier == "C32") {
+                
+             if (((Math.abs(charcterIndentifier[identifier].X - xcordinate) > 0) && (charcterIndentifier[identifier].Y - ycordinate == 0)) || ((charcterIndentifier[identifier].X - xcordinate == 0) && (Math.abs(charcterIndentifier[identifier].Y - ycordinate) > 0))) {
+                 var xdistance = charcterIndentifier[identifier].X - xcordinate;
+                 var ydistance = charcterIndentifier[identifier].Y - ycordinate;
+                 validPathFlag = "Y";
+                 if (xdistance > 0) {
+                     for (var z = xcordinate+1; z < charcterIndentifier[identifier].X; z++) {
+                         if (findCurrentClickedElement(z, ycordinate)!='X') {
+                             alert("One Element is find between the moved element kindly make a correct path");
+                             validPathFlag = "N";
+                             break;
+                         }
+                     }
+             }
+                 else if (xdistance < 0) {
+                     for (var z = charcterIndentifier[identifier].X + 1; z < xcordinate; z++) {
+                         if (findCurrentClickedElement(z, ycordinate) != 'X') {
+                             alert("One Element is find between the moved element kindly make a correct path");
+                             validPathFlag = "N";
+                             break;
+                         }
+                     }
+             }
+                 else if (ydistance > 0) {
+                     for (var z = ycordinate + 1; z < charcterIndentifier[identifier].Y; z++) {
+                         if (findCurrentClickedElement(xcordinate, z) != 'X') {
+                             alert("One Element is find between the moved element kindly make a correct path");
+                             validPathFlag = "N";
+                             break;
+                         }
+                     }
+             }
+
+                 else if (ydistance < 0) {
+                     for (var z = charcterIndentifier[identifier].Y + 1; z < ycordinate; z++) {
+                         if (findCurrentClickedElement(xcordinate, z) != 'X') {
+                             alert("One Element is find between the moved element kindly make a correct path");
+                             validPathFlag = "N";
+                             break;
+                         }
+                     }
+                 }
+
+
+                 
+                }
+            }
+
+            if (identifier == "C2" || identifier == "C7" || identifier == "C26" || identifier == "C31") {
+                if ((charcterIndentifier[identifier].X + 1 == xcordinate || charcterIndentifier[identifier].X - 1 == xcordinate) && (charcterIndentifier[identifier].Y + 2 == ycordinate)) {
+                   
+                    validPathFlag = "Y";
+            }
+                if ((charcterIndentifier[identifier].X + 1 == xcordinate || charcterIndentifier[identifier].X - 1 == xcordinate) && (charcterIndentifier[identifier].Y -2  == ycordinate)) {
+                    validPathFlag = "Y";
+            }
+                if ((charcterIndentifier[identifier].X + 2 == xcordinate || charcterIndentifier[identifier].X - 2 == xcordinate) && (charcterIndentifier[identifier].Y + 1 == ycordinate || charcterIndentifier[identifier].Y - 1 == ycordinate)) {
+                    validPathFlag = "Y";
+            }
+            }
+
+            if (identifier == "C3"||identifier == "C6"||identifier == "C27"||identifier == "C30") {
+                
+                if (Math.abs(charcterIndentifier[identifier].X - xcordinate) == Math.abs(charcterIndentifier[identifier].Y - ycordinate)) {
+                    validPathFlag = "Y";
+                    var xdistance = charcterIndentifier[identifier].X - xcordinate;
+                    var ydistance = charcterIndentifier[identifier].Y - ycordinate;
+                    if (xdistance > 0 && ydistance > 0) {
+                        var n = 1;
+                        for (var z = xcordinate + 1; z < charcterIndentifier[identifier].X; z++) {
+                            if (findCurrentClickedElement(z, ycordinate+n) != 'X') {
+                                alert("One Element is find between the moved element kindly make a correct path");
+                                validPathFlag = "N";
+                                break;
+                        }
+                            n++;
+                        }
+                }
+                    else if (xdistance < 0 && ydistance < 0) {
+                        
+                        var n = 1;
+                        for (var z = charcterIndentifier[identifier].X+1; z < xcordinate; z++) {
+                            if (findCurrentClickedElement(z, charcterIndentifier[identifier].Y + n) != 'X') {
+                                alert("One Element is find between the moved element kindly make a correct path");
+                                validPathFlag = "N";
+                                break;
+                            }
+                            n++;
+                    }
+                }
+                    else if (xdistance > 0 && ydistance < 0) {
+                        
+                        var n = 1;
+                        for (var z = xcordinate + 1; z < charcterIndentifier[identifier].X; z++) {
+                            if (findCurrentClickedElement(z, charcterIndentifier[identifier].Y + n) != 'X') {
+                                alert("One Element is find between the moved element kindly make a correct path");
+                                validPathFlag = "N";
+                                break;
+                            }
+                            n++;
+                        }
+                }
+
+                    else if (xdistance < 0 && ydistance > 0) {
+                        
+                        var n = 1;
+                        for (var z = charcterIndentifier[identifier].X + 1; z < xcordinate; z++) {
+                            if (findCurrentClickedElement(z, ycordinate + n) != 'X') {
+                                alert("One Element is find between the moved element kindly make a correct path");
+                                validPathFlag = "N";
+                                break;
+                            }
+                            n++;
+                        }
+                    }
+
+                }
+            }
+
+            if (identifier == "C4"||identifier == "C29") {
+
+                if (Math.abs(charcterIndentifier[identifier].X - xcordinate) == Math.abs(charcterIndentifier[identifier].Y - ycordinate)) {
+                    validPathFlag = "Y";
+                    var xdistance = charcterIndentifier[identifier].X - xcordinate;
+                    var ydistance = charcterIndentifier[identifier].Y - ycordinate;
+                    if (xdistance > 0 && ydistance > 0) {
+                        var n = 1;
+                        for (var z = xcordinate + 1; z < charcterIndentifier[identifier].X; z++) {
+                            if (findCurrentClickedElement(z, ycordinate + n) != 'X') {
+                                alert("One Element is find between the moved element kindly make a correct path");
+                                validPathFlag = "N";
+                                break;
+                            }
+                            n++;
+                        }
+                    }
+                    else if (xdistance < 0 && ydistance < 0) {
+
+                        var n = 1;
+                        for (var z = charcterIndentifier[identifier].X + 1; z < xcordinate; z++) {
+                            if (findCurrentClickedElement(z, charcterIndentifier[identifier].Y + n) != 'X') {
+                                alert("One Element is find between the moved element kindly make a correct path");
+                                validPathFlag = "N";
+                                break;
+                            }
+                            n++;
+                        }
+                    }
+                    else if (xdistance > 0 && ydistance < 0) {
+
+                        var n = 1;
+                        for (var z = xcordinate + 1; z < charcterIndentifier[identifier].X; z++) {
+                            if (findCurrentClickedElement(z, charcterIndentifier[identifier].Y + n) != 'X') {
+                                alert("One Element is find between the moved element kindly make a correct path");
+                                validPathFlag = "N";
+                                break;
+                            }
+                            n++;
+                        }
+                    }
+
+                    else if (xdistance < 0 && ydistance > 0) {
+                        
+                        var n = 1;
+                        for (var z = charcterIndentifier[identifier].X + 1; z < xcordinate; z++) {
+                            if (findCurrentClickedElement(z, ycordinate + n) != 'X') {
+                                alert("One Element is find between the moved element kindly make a correct path");
+                                validPathFlag = "N";
+                                break;
+                            }
+                            n++;
+                        }
+                }
+            }
+                else if (((Math.abs(charcterIndentifier[identifier].X - xcordinate) > 0) && (charcterIndentifier[identifier].Y - ycordinate == 0)) || ((charcterIndentifier[identifier].X - xcordinate == 0) && (Math.abs(charcterIndentifier[identifier].Y - ycordinate) > 0))) {
+                    
+                    var xdistance = charcterIndentifier[identifier].X - xcordinate;
+                    var ydistance = charcterIndentifier[identifier].Y - ycordinate;
+                    validPathFlag = "Y";
+                    if (xdistance > 0) {
+                        for (var z = xcordinate + 1; z < charcterIndentifier[identifier].X; z++) {
+                            if (findCurrentClickedElement(z, ycordinate) != 'X') {
+                                alert("One Element is find between the moved element kindly make a correct path");
+                                validPathFlag = "N";
+                                break;
+                            }
+                        }
+                    }
+                    else if (xdistance < 0) {
+                        for (var z = charcterIndentifier[identifier].X + 1; z < xcordinate; z++) {
+                            if (findCurrentClickedElement(z, ycordinate) != 'X') {
+                                alert("One Element is find between the moved element kindly make a correct path");
+                                validPathFlag = "N";
+                                break;
+                            }
+                        }
+                    }
+                    else if (ydistance > 0) {
+                        for (var z = ycordinate + 1; z < charcterIndentifier[identifier].Y; z++) {
+                            if (findCurrentClickedElement(xcordinate, z) != 'X') {
+                                alert("One Element is find between the moved element kindly make a correct path");
+                                validPathFlag = "N";
+                                break;
+                            }
+                        }
+                    }
+
+                    else if (ydistance < 0) {
+                        for (var z = charcterIndentifier[identifier].Y + 1; z < ycordinate; z++) {
+                            if (findCurrentClickedElement(xcordinate, z) != 'X') {
+                                alert("One Element is find between the moved element kindly make a correct path");
+                                validPathFlag = "N";
+                                break;
+                            }
+                        }
+                }
+                }
+            }
+
+            if (identifier == "C5"||identifier == "C28") {
+                if (Math.abs(charcterIndentifier[identifier].X - xcordinate) ==1 && Math.abs(charcterIndentifier[identifier].Y - ycordinate)==1) {
+                    validPathFlag = "Y";
+                }
+                else if (((Math.abs(charcterIndentifier[identifier].X - xcordinate) == 1) && (charcterIndentifier[identifier].Y - ycordinate == 0)) || ((charcterIndentifier[identifier].X - xcordinate == 0) && (Math.abs(charcterIndentifier[identifier].Y - ycordinate) ==1))) {
+                    validPathFlag = "Y";
+                }
+            }
+            return validPathFlag;
+        }
+
+        function drawCanvas(canvasId) {
+            var canvas = document.getElementById(canvasId);
+            var ctx = canvas.getContext('2d');
+            var width = canvas.offsetWidth;
+            var height = canvas.offsetHeight;
+            var imagedrawArray = [0, 1, 6, 7];
+            var blackedrow = 1;
+            var whiterow = 6;
+
+            var xwidth = width / 8;
+            var ywidth = height / 8;
+            var xposition, yposition;
+            for (var i = 0; i < 8; i++) {
+                xposition = i * width / 8;
+                for (var j = 0; j < 8; j++) {
+                    yposition = j * height / 8;
+                    imageName = i.toString() + j.toString();
+                    ctx.save();
+                    ctx.translate(xposition, yposition);
+                    if (i % 2 == 0) {
+                        if (j % 2 == 0) {
+                            ctx.fillStyle = "white";
+                        }
+                        else {
+                            ctx.fillStyle = "#0D9154";
+                        }
+                    }
+                    else {
+                        if (j % 2 == 0) {
+                            ctx.fillStyle = "#0D9154";
+                        }
+                        else {
+                            ctx.fillStyle = "white";
+                        }
+                    }
+
+                    ctx.beginPath();
+                    ctx.fillRect(0, 0, width / 8, height / 8);
+                    ctx.closePath();
+                    ctx.restore();
+                }
+            }
+            ctx.lineWidth = "2";
+            redrawCanvas("canvas");
+            ctx.strokeRect(0, 0, width, height);
+            
+        }
+
+        function redrawCanvas(canvasId) {
+            var canvas = document.getElementById(canvasId);
+            var ctx = canvas.getContext('2d');
+            var width = canvas.offsetWidth;
+            var height = canvas.offsetHeight;
+            var xwidth = width / 8;
+            var yheight = height / 8;
+            var xposition, yposition;
+            for (var key in charcterIndentifier) {
+                if (key.toString() != "id") {
+                    xposition = charcterIndentifier[key].X * xwidth;
+                    yposition = charcterIndentifier[key].Y * yheight;
+                    ctx.save();
+                    ctx.translate(xposition, yposition);
+                    ctx.drawImage(document.getElementById(charcterIndentifier[key].ImgId), 14, 5);
+                    ctx.restore();
+                }
+            }
+        } 
+
+
+    </script>
+</body>
+
+  
+</html>
