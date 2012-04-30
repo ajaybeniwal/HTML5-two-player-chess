@@ -2,4 +2,5 @@ This game is based on canvas and local index db storage
 this is a two player chess game and does not have any computer running algorithm
 This game will only work with HTML5 browser
 This is in beta stage so it may have many bugs and errors
-
+Host the site under IIS or apache server and browse the site with latest Firefox 12.0 version or above.
+If the example does not work kindly debug the html file according to your logic
